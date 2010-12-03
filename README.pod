@@ -53,25 +53,67 @@ simo.el - simple image manupulation object.
 
 =head1 simo-palette
 
-=head1 simo
+=head1 CLASS simo
 
-=head2 (simo::new :width WIDTH :height HEIGHT)
+=head2 CONSTRUCTOR
 
-=head2 (simo-resize SIMO WIDTH HEIGHT &optional X Y)
+=over 4
 
-=head2 (simo-put-color SIMO X Y COLOR-NUM)
+=item (simo::new :width WIDTH :height HEIGHT)
 
-=head2 (simo-get-color SIMO X Y)
+Creates new simo object.
 
-=head2 (simo-fill-rect SIMO X0 Y0 X1 Y1 COLOR-NUM)
+=back
 
-=head2 (simo-rect SIMO SIMO X0 Y0 X1 Y1 COLOR-NUM)
 
-=head2 (simo-draw-line SIMO X0 Y0 X1 Y1 COLOR-NUM)
+=head2 ATTRIBUTES
 
-=head2 (simo-to-xpm SIMO)
+=over 4
 
-=head2 (simo-insert SIMO)
+=item :width
+
+=item :height
+
+=item :pixels
+
+=back
+
+=head2 METHODS
+
+=over 4
+
+=item (simo-resize SIMO WIDTH HEIGHT &optional X Y)
+
+=item (simo-put-color SIMO X Y COLOR-NUM)
+
+=item (simo-get-color SIMO X Y)
+
+=item (simo-fill-rect SIMO X0 Y0 X1 Y1 COLOR-NUM)
+
+=item (simo-rect SIMO SIMO X0 Y0 X1 Y1 COLOR-NUM)
+
+=item (simo-draw-line SIMO X0 Y0 X1 Y1 COLOR-NUM)
+
+=item (simo-to-xpm SIMO)
+
+=item (simo-insert SIMO)
+
+=back
+
+=head1 reading xpm
+
+Following functions are read xpm data and it returns pair of simo-palette and
+simo objects.
+
+=over 4
+
+=item (simo::from-xpm STRING)
+
+=item (simo::from-xpm-buffer BUFFER)
+
+=item (simo::from-xpm-file FILE)
+
+=back
 
 =head1 BUGS
 

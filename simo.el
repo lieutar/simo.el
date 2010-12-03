@@ -397,10 +397,29 @@ static char * %s[] = {
 (defun simo::from-xpm-buffer (&optional buf)
   (save-excursion
     (set-buffer (or buf (current-buffer)))
-    (let (width height img palette)
+    (goto-char (point-min))
+    (let (width height p-width ncolors palette img)
+      (re-search-forward 
+       "\"\\s *\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s *\"")
+      (setq width   (string-to-number (match-string 1)))
+      (setq height  (string-to-number (match-string 2)))
+      (setq ncolors (string-to-number (match-string 3)))
+      (setq p-width (string-to-number (match-string 4)))
+      (setq img     (simo::new :width width :height height))
+      (setq pallete (simo-pallete::new))
+      (let ((< i 0))
+        (re-search-forward
+         "")
+        )
       )))
 
-(defun simo::from-xpm-string (str)
+(defun simo::from-xpm-file (file)
+  (let* ((buf (find-file-no-select file))
+         (simo (simo::from-xpm-buffer buf)))
+    (kill-buffer buf)
+    simo))
+
+(defun simo::from-xpm (str)
   (with-temp-buffer
     (isert str)
     (simo-from-xpm-buffer (current-buffer))))
