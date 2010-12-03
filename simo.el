@@ -44,6 +44,7 @@
 ;;; simo-palette - xpm palette object for simo
 ;;;
 
+
 (defclass simo-palette ()
   (
    (sym
@@ -51,43 +52,80 @@
     :writer  simo-palette-set-sym
     :type    vector
     :initarg :sym
-    :initform [])
+    :initform []
+    :documentation "symbol palette.")
+
    (full
     :reader  simo-palette-full
     :writer  simo-palette-set-full
     :type    vector
     :initarg :full
-    :initform [])
+    :initform []
+    :documentation "24bit color palette.")
+
    (mono
     :reader  simo-palette-mono
     :writer  simo-palette-set-mono
     :type    vector
     :initarg :mono
-    :initform [])
+    :initform []
+    :docmentation "binary palette.")
+
    (g4
     :reader  simo-palette-g4
     :writer  simo-palette-set-g4
     :type    vector
     :initarg :g4
-    :initform [])
+    :initform []
+    :documentation "grayscale (4 stages) palette.")
+
    (gray
     :reader  simo-palette-gray
     :writer  simo-palette-set-gray
     :type    vector
     :initarg :gray
-    :initform [])
+    :initform []
+    :documentation "grayscale palette.")
    )
+  :documentation "indexed color palette for `simo'."
   )
 
 
 (defun simo-palette::new (&rest args)
   (apply 'make-instance 'simo-palette args))
 
+(defsubst simo-palette::-number-to-xpm-color-info (self attr sym idx default)
+  (let ((ar (eieio-oref self attr)))
+    (if ar
+        (condition-case nil
+            (format " %s %s" sym (aref ar idx))
+          (args-out-of-range default))
+      default)))
+
+(defmethod simo-palette-xpm-sym-info ((self simo-palette) idx)
+  (simo-palette::-number-to-xpm-color-info self 'sym "s" idx
+                                           (format "color-%s" idx)))
+
+(defmethod simo-palette-xpm-full-info ((self simo-palette) idx)
+  (simo-palette::-number-to-xpm-color-info self 'full "c" idx ""))
+
+(defmethod simo-palette-xpm-mono-info ((self simo-palette) idx)
+  (simo-palette::-number-to-xpm-color-info self 'mono "m" idx ""))
+
+(defmethod simo-palette-xpm-gray-info ((self simo-palette) idx)
+  (simo-palette::-number-to-xpm-color-info self 'gray "g" idx ""))
+
+(defmethod simo-palette-xpm-g4-info ((self simo-palette) idx)
+  (simo-palette::-number-to-xpm-color-info self 'g4  "g4"idx ""))
+
 (defmethod simo-palette-xpm-line ((self simo-palette) sym num)
   (labels ((palref (ar sym idx default)
                    (if ar
                        (condition-case nil
-                           (format " %s %s" sym (aref ar idx))
+                           (let ((color (aref ar idx)))
+                             (if color
+                                 (format " %s %s" sym color)
+                               default))
                          (args-out-of-range default))
                      default)))
     (format "\"%s\t%s%s%s%s%s\","
@@ -97,6 +135,32 @@
             (palref (oref self mono) "m"  num "")
             (palref (oref self g4)   "g4" num "")
             (palref (oref self gray) "g"  num ""))))
+
+
+(defmethod simo-palette-set-n-colors ((self simo-palette)
+                                      n-colors &rest default)
+  (dolist (attr '(sym full mono g4 gray))
+    (eieio-oset self attr (make-vector
+                           n-colors
+                           (or (plist-get default
+                                          (intern (format ":%s" attr)))
+                               nil)))))
+
+(defmethod simo-palette-add-xpm-info ((self simo-palette) index data)
+  (dolist (slot '(("s\\s +\\([^\t ]+\\)"  . sym)
+                  ("c\\s +\\([^\t ]+\\)"  . full)
+                  ("m\\s +\\([^\t ]+\\)"  . mono)
+                  ("g4\\s +\\([^\t ]+\\)" . g4)
+                  ("g\\s +\\([^\t ]+\\)"  . gray)))
+    (let ((regex (car slot))
+          (attr  (cdr slot)))
+      (when (string-match regex data)
+        (aset (eieio-oref self attr) index (match-string 1 data))))))
+
+
+
+
+
 
 ;;;
 ;;; preset palettes
@@ -131,6 +195,10 @@
 (defconst simo-alist-palette-16
   (simo-palette::list-to-alist simo-list-palette-16))
 
+(defconst simo-palette-16
+  (simo-palette::new :full simo-vector-palette-16))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; simo -  simple image manupulation object
@@ -156,6 +224,7 @@
          (h    (simo-height self)))
     (oset  self pixels (make-vector (* w h) -1))
     self))
+
 
 (defmethod simo-resize ((self simo) width height x y)
   (let ((tmp (simo::new :width width :height height))
@@ -258,7 +327,7 @@ static char * %s[] = {
 /* Values */
 \"%d %d %d %d\",
 /* Colors */
-\" \ts None c None\"%s
+\" \t s None m None g None g4 None c None\"%s
 /* pixels */
 %s
 };
@@ -277,7 +346,7 @@ static char * %s[] = {
         (buffer  (plist-get props :buffer))
         (type    (plist-get props :type))
         (ascent  (plist-get props :acent))
-        (palette (plist-get props :palette))
+        (palette (plist-get props :colors))
         (copy    (plist-get props :copy))
         (obj     nil))
 
@@ -319,13 +388,13 @@ static char * %s[] = {
 
 
 
-(defmethod simo-string ((self simo) palette &optional string)
-  (let ((R   (or string " "))
-        (img (simo-to-xpm self palette)))
-    (simo::add-image-properties img :string R :copy t)))
+(defmethod simo-string ((self simo) &rest opt)
+  (let ((R   (or (plist-get opt :string) " "))
+        (img (apply 'simo-to-xpm self opt)))
+    (apply 'simo::add-image-properties img :string R :copy t opt)))
 
-(defmethod simo-insert ((self simo) palette &optionsl string)
-  (insert (simo-string self palette string)))
+(defmethod simo-insert ((self simo) &rest opt)
+  (insert (apply 'simo-string self opt)))
 
 ;;
 
@@ -394,24 +463,58 @@ static char * %s[] = {
         (setq s (1+ s))
         (setq b (- b L))))))
 
+(defalias 'simo::-read-c-string 'read)
+
 (defun simo::from-xpm-buffer (&optional buf)
   (save-excursion
     (set-buffer (or buf (current-buffer)))
     (goto-char (point-min))
-    (let (width height p-width ncolors palette img)
+    (let ((pixdic (make-hash-table :test 'equal))
+          (regexp-c-string "\\(\"\\([^\\\"]\\|\\\\.\\)+\"\\)")
+          width height p-width ncolors palette img)
+      ;;
+      ;; get values
+      ;;
       (re-search-forward 
        "\"\\s *\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s *\"")
       (setq width   (string-to-number (match-string 1)))
       (setq height  (string-to-number (match-string 2)))
       (setq ncolors (string-to-number (match-string 3)))
       (setq p-width (string-to-number (match-string 4)))
-      (setq img     (simo::new :width width :height height))
-      (setq pallete (simo-pallete::new))
-      (let ((< i 0))
-        (re-search-forward
-         "")
-        )
-      )))
+      (setq img    (simo::new :width width :height height))
+      (setq palette (simo-palette::new))
+      (simo-palette-set-n-colors palette ncolors)
+
+      ;;
+      ;; get colors
+      ;;
+      (let ((i 0))
+        (while (< i ncolors)
+          (re-search-forward regexp-c-string)
+          (let* ((data       (simo::-read-c-string (match-string 1)))
+                 (sym        (substring data 0 p-width))
+                 (color-info (substring data p-width)))
+            (simo-palette-add-xpm-info palette i color-info)
+            (puthash sym i pixdic))
+          (setq i (1+ i))))
+
+      ;;
+      ;; get pixels
+      ;;
+      (let ((y 0))
+        (while (< y height)
+          (re-search-forward regexp-c-string)
+          (let* ((data (simo::-read-c-string (match-string 1)))
+                 (len  (length data))
+                 (x 0))
+            (while (< x width)
+              (simo-put-pixel img x y
+                              (gethash (substring data
+                                                  (* x p-width)
+                                                  (* (setq x (1+ x)) p-width))
+                                       pixdic))))
+          (setq y (1+ y))))
+      (list palette img))))
 
 (defun simo::from-xpm-file (file)
   (let* ((buf (find-file-no-select file))
@@ -421,10 +524,8 @@ static char * %s[] = {
 
 (defun simo::from-xpm (str)
   (with-temp-buffer
-    (isert str)
-    (simo-from-xpm-buffer (current-buffer))))
-
-
+    (insert str)
+    (simo::from-xpm-buffer (current-buffer))))
 
 
 (provide 'simo)
