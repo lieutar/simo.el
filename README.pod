@@ -94,9 +94,40 @@ Creates new simo object.
 
 =item (simo-draw-line SIMO X0 Y0 X1 Y1 COLOR-NUM)
 
-=item (simo-to-xpm SIMO)
+=item (simo-to-xpm SIMO &rest OPTIONS)
 
-=item (simo-insert SIMO)
+Creates xpm string from the SIMO object.
+This method accespts following options.
+
+=oever 4
+
+=item :name
+
+=item :palette
+
+=item :full
+
+=item :mono
+
+=item :g4
+
+=item :gray
+
+=back
+
+=item (simo-string SIMO &rest options)
+
+Crates string with properties for displays image.
+
+This method accepts  "simo-to-xpm" method options and following options.
+
+=over 4
+
+=item :string
+
+=back
+
+=item (simo-insert SIMO &rest options)
 
 =back
 
@@ -112,6 +143,14 @@ simo objects.
 =item (simo::from-xpm-buffer BUFFER)
 
 =item (simo::from-xpm-file FILE)
+
+=back
+
+=head1 REQUIREMENTS
+
+=over 4
+
+=item L<eieio|http://cedet.sourceforge.net/eieio.shtml> - Enhanced Implementation of Emacs Interpreted Objects.
 
 =back
 
