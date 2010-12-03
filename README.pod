@@ -65,9 +65,25 @@ simo.el - simple image manupulation object.
 
 =head2 (simo-fill-rect SIMO X0 Y0 X1 Y1 COLOR-NUM)
 
-=head2 (simo-rect SIMO X0 Y0 X1 Y1 COLOR-NUM)
+=head2 (simo-rect SIMO SIMO X0 Y0 X1 Y1 COLOR-NUM)
 
-=head2 (simo-draw-line X0 Y0 X1 Y1 COLOR-NUM)
+=head2 (simo-draw-line SIMO X0 Y0 X1 Y1 COLOR-NUM)
+
+=head2 (simo-to-xpm SIMO)
+
+=head2 (simo-insert SIMO)
+
+=head1 BUGS
+
+=over 4
+
+=item 英語が苦手です。
+
+=item まだきちんと線がひけません。
+
+=item まだ、xpm の読み込みができません。
+
+=back
 
 =head1 AUTHOR
 
