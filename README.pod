@@ -53,7 +53,7 @@ simo.el - simple image manupulation object.
 
 =head1 CLASS simo-palette
 
-=had1 CONSTRUCTOR
+=head1 CONSTRUCTOR
 
 =over 4
 
