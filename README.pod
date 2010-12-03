@@ -192,7 +192,14 @@ simo objects.
 
 =item I can't write English well yet.
 
-=item simo-draw-line is not complete yet.
+=item This documentation style (using POD) is strange.
+
+I wanted to test to write README by POD. However, the regular style of
+documentation of emacs-lisp is not POD.
+
+I am trying to change style of documentation to regular style of emacs-lisp
+and eieio.
+
 
 =back
 

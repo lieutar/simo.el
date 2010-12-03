@@ -18,17 +18,29 @@
 ")
 
 (let ((load-path (cons default-directory load-path))
-      (n 32)
+      (n 64)
       (buf (get-buffer-create "*simo-test*"))
       (win (selected-window)))
-  (set-buffer buf)
+
   (load "simo")
+
+  (set-buffer buf)
+  (delete-region (point-min) (point-max))
   (let* ((w  n)
          (h  n)
          (hw (/ w 2))
          (hh (/ h 2))
+         (3w (/ w 3))
+         (3h (/ h 3))
+         (6w (- w 3w))
+         (6h (- h 3w))
          (img (simo::new :width w :height h)))
     (simo-fill-rect img 0 0  w  h 0)
+
+    (simo-draw-line img 3w 0 3w h 5)
+    (simo-draw-line img 6w h 6w 0 6)
+    (simo-draw-line img 0 3h w 3h 7)
+    (simo-draw-line img w 6h 0 6h 8)
 
     (simo-draw-line img 0 0  w hh 1)
     (simo-draw-line img 0 0  w  h 1)
@@ -46,10 +58,11 @@
     (simo-draw-line img 0 h  w  0 4)
     (simo-draw-line img 0 h hw  0 4)
 
-    (simo-rect      img 0 0  w  h 7)
+
+    (simo-rect      img 0 0  w  h 9)
 
     (let ((xpm (simo-to-xpm img)))
-      (insert (replace-regexp-in-string "^" ";; " xpm) "\n")
+      (insert xpm "\n")
       (insert (simo::add-image-properties
                xpm
                :colors simo-alist-palette-16))
@@ -57,15 +70,12 @@
                xpm
                :colors (simo-palette::list-to-alist
                         (reverse simo-list-palette-16))))
-      (insert "\n")
+      (insert "\n\n")
       (let* ((result  (simo::from-xpm (simo-to-xpm img
                                                    :palette simo-palette-16)))
              (palette (car result))
              (img2    (cadr result)))
-        (insert (replace-regexp-in-string
-                 "^"
-                 ";; " (simo-to-xpm img2 :palette palette)))
-        (insert "\n")
+        (insert (simo-to-xpm img2 :palette palette)"\n")
         (simo-insert img2 :palette palette)
         )))
   (pop-to-buffer buf)

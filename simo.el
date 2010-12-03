@@ -91,10 +91,12 @@
   )
 
 
-(defun simo-palette::new (&rest args)
-  (apply 'make-instance 'simo-palette args))
+(defun simo-palette::new (&rest options)
+  "Creates new `simo-palette'."
+  (apply 'make-instance 'simo-palette options))
 
 (defsubst simo-palette::-number-to-xpm-color-info (self attr sym idx default)
+  ""
   (let ((ar (eieio-oref self attr)))
     (if ar
         (condition-case nil
@@ -103,22 +105,28 @@
       default)))
 
 (defmethod simo-palette-xpm-sym-info ((self simo-palette) idx)
+  ""
   (simo-palette::-number-to-xpm-color-info self 'sym "s" idx
                                            (format "color-%s" idx)))
 
 (defmethod simo-palette-xpm-full-info ((self simo-palette) idx)
+  ""
   (simo-palette::-number-to-xpm-color-info self 'full "c" idx ""))
 
 (defmethod simo-palette-xpm-mono-info ((self simo-palette) idx)
+  ""
   (simo-palette::-number-to-xpm-color-info self 'mono "m" idx ""))
 
 (defmethod simo-palette-xpm-gray-info ((self simo-palette) idx)
+  ""
   (simo-palette::-number-to-xpm-color-info self 'gray "g" idx ""))
 
 (defmethod simo-palette-xpm-g4-info ((self simo-palette) idx)
+  ""
   (simo-palette::-number-to-xpm-color-info self 'g4  "g4"idx ""))
 
 (defmethod simo-palette-xpm-line ((self simo-palette) sym num)
+  ""
   (labels ((palref (ar sym idx default)
                    (if ar
                        (condition-case nil
@@ -139,6 +147,7 @@
 
 (defmethod simo-palette-set-n-colors ((self simo-palette)
                                       n-colors &rest default)
+  ""
   (dolist (attr '(sym full mono g4 gray))
     (eieio-oset self attr (make-vector
                            n-colors
@@ -147,6 +156,7 @@
                                nil)))))
 
 (defmethod simo-palette-add-xpm-info ((self simo-palette) index data)
+  ""
   (dolist (slot '(("s\\s +\\([^\t ]+\\)"  . sym)
                   ("c\\s +\\([^\t ]+\\)"  . full)
                   ("m\\s +\\([^\t ]+\\)"  . mono)
@@ -181,10 +191,17 @@
                                   "#000099"
                                   "#990099"
                                   "#009999"
-                                  "#999999" ))
-(defconst simo-vector-palette-16 (apply 'vector simo-list-palette-16))
+                                  "#999999" )
+  "A besic color list that contains 16 colors.")
+
+(defconst simo-vector-palette-16 (apply 'vector simo-list-palette-16)
+  "A basic color vector that contains 16 colors.")
 
 (defun simo-palette::list-to-alist (src)
+  "An utility function for the `simo' solution.
+This function creates alist palette for `simo::add-image-properties'
+and its applications. (`simo-strin', `simo-insert')
+"
   (let ((n 0))
     (mapcar (lambda (color)
               (let ((R (cons n color)))
@@ -193,7 +210,8 @@
             src)))
 
 (defconst simo-alist-palette-16
-  (simo-palette::list-to-alist simo-list-palette-16))
+  (simo-palette::list-to-alist simo-list-palette-16)
+  )
 
 (defconst simo-palette-16
   (simo-palette::new :full simo-vector-palette-16))
@@ -208,17 +226,25 @@
   ((width
     :reader  simo-width
     :type    integer
-    :initarg :width)
+    :initarg :width
+    :documentation "The width of the image.
+This attribute is required when create an instance.")
    (height
     :reader  simo-height
     :type    integer
-    :initarg :height)
+    :initarg :height
+    :documentation "The height of the image.
+This attribute is required when create an instance.")
    (pixels
     :reader  simo-pixels
     :type    vector
-    )))
+    ))
+  :documentation "simo - simple image manupulation object.
+This class provides simple methods for manupulate bitmap image.
+")
 
 (defun simo::new (&rest args)
+  "Creates new `simo' instance and initialize it."
   (let* ((self (apply 'make-instance 'simo args))
          (w    (simo-width  self))
          (h    (simo-height self)))
@@ -227,6 +253,7 @@
 
 
 (defmethod simo-resize ((self simo) width height x y)
+  ""
   (let ((tmp (simo::new :width width :height height))
         (w   (simo-width  self))
         (h   (simo-height self)))
@@ -235,14 +262,16 @@
       (while (< Y h)
         (let ((X 0))
           (while (< X w)
-            (simo-put-pixel (+ X x)
-                                    (+ Y y)
-                                    (simo-get-pixel self X Y))
+            (simo-put-pixel self
+                            (+ X x)
+                            (+ Y y)
+                            (simo-get-pixel self X Y))
             (setq X (1+ X))))
         (setq Y (1+ Y))))
     ))
 
 (defmethod simo-get-pixel ((self simo) x y)
+  ""
   (let ((width  (simo-width   self))
         (height (simo-height  self))
         (pixels (oref self pixels)))
@@ -253,6 +282,7 @@
       (aref pixels (+ x (* width y))))))
 
 (defmethod simo-put-pixel ((self simo) x y c)
+  ""
   (let ((width  (simo-width   self))
         (height (simo-height  self))
         (pixels (oref self pixels)))
@@ -270,6 +300,17 @@
 ;;; (browse-url "http://rctools.sourceforge.jp/pukiwiki/index.php?soccerwindow2%2FXPM%A5%D5%A5%A9%A1%BC%A5%DE%A5%C3%A5%C8")
 ;;;
 (defmethod simo-to-xpm ((self simo) &rest more-spec)
+  "Creates xpm string from the `SIMO' image.
+This method accepts following options.
+
+  :name    ... it specifies the name of C variable.
+  :palette ... an instance of `simo-palette'.
+
+Following options are override fields of the `simo-palette'.
+
+  :sym :full :mono :g4 :gray
+
+"
   (let ((width   (simo-width  self))
         (height  (simo-height self))
         (y       0)
@@ -340,6 +381,27 @@ static char * %s[] = {
 
 
 (defun simo::add-image-properties (data &rest props)
+   "Builds text properties for displaying image.
+`DATA' is the data of image. This function accepts following options.
+
+  :string .... Target string.
+
+  :buffer .... Target buffer.
+
+  :begin  .... Beginning of the region in the target.
+
+  :end    .... End of the region in the target.
+
+  :type   .... The type of the image. 
+
+  :colors .... Specifications of colors of color symbols.
+
+  :copy   .... If it is not nil, this function creates 
+                 copy of the target string.
+               When the target is a buffer, this option is ignored.
+
+
+This function is generic, and usable without `simo' objects."
   (let ((str     (plist-get props :string))
         (begin   (plist-get props :begin))
         (end     (plist-get props :end))
@@ -358,7 +420,7 @@ static char * %s[] = {
                 (setq buffer (or buffer (current-buffer)))
                 (save-excursion 
                   (set-buffer buffer)
-                  (setq begin (or begin (point-min)))
+                  (setq begin (or begin (max (point-min) (1- (point)))))
                   (setq end   (or end   (min (1+ begin) (point-max))))))
             (progn
               (setq str (or str " "))
@@ -389,16 +451,19 @@ static char * %s[] = {
 
 
 (defmethod simo-string ((self simo) &rest opt)
+  ""
   (let ((R   (or (plist-get opt :string) " "))
         (img (apply 'simo-to-xpm self opt)))
     (apply 'simo::add-image-properties img :string R :copy t opt)))
 
 (defmethod simo-insert ((self simo) &rest opt)
+  ""
   (insert (apply 'simo-string self opt)))
 
 ;;
 
 (defmethod simo-rect ((self simo) x0 y0 x1 y1 c)
+  "Draws rectanble."
   (let ((x (min x1 x0))
         (y (min y1 y0))
         (X (max x1 x0))
@@ -415,6 +480,7 @@ static char * %s[] = {
         (setq y (1+ y))))))
 
 (defmethod simo-fill-rect ((self simo) x0 y0 x1 y1 c)
+  "Fills rectangle."
   (let ((x (min x1 x0))
         (y (min y1 y0))
         (X (max x1 x0))
@@ -426,46 +492,73 @@ static char * %s[] = {
           (setq x (1+ x))))
       (setq y (1+ y)))))
 
-(defmethod simo-draw-line ((self simo) x0 y0 x1 y1 c)
-  (let* ((w  (- x1 x0))
-         (h  (- y1 y0))
-         (W  (abs w))
-         (H  (abs h))
-         (L  (max W H))
-         (S  (min W H))
-         (b  0)
-         (x  x0)
-         (y  y0)
-         (w1 (/ w W))
-         (h1 (/ h H))
-         ls
-         ss
-         l1
-         s1)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(macrolet
+  ((defblam (name args doc action)
+         `(defmethod ,name ((self simo) x0 y0 x1 y1 ,@args)
+            ,doc
+            (let* ((w  (- x1 x0))    (h  (- y1 y0)) ;; moving
+                   (W  (abs w))      (H  (abs h))   ;; absolute size
+                   (L  (max W H 1))                 ;; longer   width
+                   (S  (max 1 (min W H)))           ;; shorter  width
+                   
+                   (x  x0)         (y  y0)     ;; start point
+                   (w1 (if (= W 0) 1 (/ w W))) ;; horizontal step
+                   (h1 (if (= H 0) 1 (/ h H))) ;; vertical step
+                   ls  ss ;; references for `x'  and `y'.
+                   l1  s1 ;; references for `x1' and `y1'.
+                   )
+              
+              ;; set references
+              (if (> W H)
+                  (progn (setq ls 'x)
+                         (setq ss 'y)
+                         (setq l1 w1)
+                         (setq s1 h1))
+                (setq ls 'y)
+                (setq ss 'x)
+                (setq l1 h1)
+                (setq s1 w1))
+              
+              ;; start Bresenhamm's line argorism.
+              (let (
+                    (s 0) ;; coordinate on the short rectangular.
+                    (b 0) ;; buffer
+                    )
 
-    (if (> W H)
-        (progn (setq ls 'x)
-               (setq ss 'y)
-               (setq l1 w1)
-               (setq s1 h1))
-      (setq ls 'y)
-      (setq ss 'x)
-      (setq l1 h1)
-      (setq s1 h1))
+                (while (< s S)
+                  (while (< b L)
+                    
+                    ;; perform action
+                    ,action
+                    
+                    (set ls (+ (symbol-value ls) l1))
+                    (setq b (+ b S)))
+                  (set ss (+ (symbol-value ss) s1))
+                  (setq s (1+ s))
+                  (setq b (- b L))))))))
 
-    (let ((s 0))
-      (while (< s S)
-        (while (< b L)
-          (simo-put-pixel self x y c)
-          (set ls (+ (symbol-value ls) l1))
-          (setq b (+ b S)))
-        (set ss (+ (symbol-value ss) s1))
-        (setq s (1+ s))
-        (setq b (- b L))))))
+  (defblam simo-draw-line (c)
+       "Draws line by `C'.
+The line starts from (`X0', `Y0') , and goes to (`X1', `Y1').
+"
+       (simo-put-pixel self x y c))
+
+  (defblam simo-with-line (callback)
+       "Calls `CALLBACK' with corrdinate (two arguments). on the line.
+The line starts from (`X0', `Y0') , and goes to (`X1', `Y1').
+"
+       (funcall callback self x y)))
+
+
+
+
 
 (defalias 'simo::-read-c-string 'read)
 
 (defun simo::from-xpm-buffer (&optional buf)
+  "Reads the buffer that contains xpm image data, and returns pair of `simo-palette' and `simo'.
+"
   (save-excursion
     (set-buffer (or buf (current-buffer)))
     (goto-char (point-min))
@@ -476,7 +569,7 @@ static char * %s[] = {
       ;; get values
       ;;
       (re-search-forward 
-       "\"\\s *\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s *\"")
+       "\"\\s *\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)\\s +\\([0-9]+\\)[^\"]*\"")
       (setq width   (string-to-number (match-string 1)))
       (setq height  (string-to-number (match-string 2)))
       (setq ncolors (string-to-number (match-string 3)))
@@ -517,12 +610,14 @@ static char * %s[] = {
       (list palette img))))
 
 (defun simo::from-xpm-file (file)
+  ""
   (let* ((buf (find-file-no-select file))
          (simo (simo::from-xpm-buffer buf)))
     (kill-buffer buf)
     simo))
 
 (defun simo::from-xpm (str)
+  ""
   (with-temp-buffer
     (insert str)
     (simo::from-xpm-buffer (current-buffer))))
