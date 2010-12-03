@@ -77,11 +77,13 @@ simo.el - simple image manupulation object.
 
 =over 4
 
-=item 英語が苦手です。
+=item This document is not complete yet.
 
-=item まだきちんと線がひけません。
+=item I can't write English well yet.
 
-=item まだ、xpm の読み込みができません。
+=item simo-draw-line is not complete yet.
+
+=item simo::from-xpm is not supported yet.
 
 =back
 
