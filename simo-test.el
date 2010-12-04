@@ -61,7 +61,7 @@
 
     (simo-rect      img 0 0  w  h 9)
 
-    (let ((xpm (simo-to-xpm img)))
+    (let ((xpm (simo-to-xpm img :cpp4 t)))
       (insert xpm "\n")
       (insert (simo::add-image-properties
                xpm

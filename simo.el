@@ -36,6 +36,18 @@
       (setq n (1+ n)))
     (replace-regexp-in-string "[\\\\|\"]" "" (apply 'string (reverse T)))))
 
+(logand 255 4)
+
+
+(defsubst simo::xpm-24bit-symbol (num)
+  (string
+   (aref simo-xpm-symbol-table (logand 63 (lsh num -18)))
+   (aref simo-xpm-symbol-table (logand 63 (lsh num -12)))
+   (aref simo-xpm-symbol-table (logand 63 (lsh num  -6)))
+   (aref simo-xpm-symbol-table (logand 63 (lsh num  -0)))))
+
+
+
 (defconst simo-xpm-max-colors (length simo-xpm-symbol-table))
 (defconst simo-xpm-char-width 1)
 
@@ -305,8 +317,20 @@ This method accepts following options.
 
   :name    ... it specifies the name of C variable.
   :palette ... an instance of `simo-palette'.
+  :cpp4    ... If it is not nil, this method makes xpm that specifies
+               cells by 4byte charcters.
 
-Following options are override fields of the `simo-palette'.
+               If this is nil, this method cannot
+               correctly encode the bitmap
+               with the color more than 92 colors. 
+
+               However, softwares that supports the product 
+               when this option is unexpected nil is a little,
+               and a lot of applications cannot be read. 
+
+               Of course, `simo::from-xpm' supports it.
+
+Following options overrids fields of the `simo-palette'.
 
   :sym :full :mono :g4 :gray
 
@@ -319,34 +343,48 @@ Following options are override fields of the `simo-palette'.
         (ncolors 0)
         (pixels  nil)
         (colors  nil)
-        (imgname  (or (plist-get more-spec :name) "untitled"))
-        (palette  (or (plist-get more-spec :palette) (simo-palette::new)))
-        (pal-sym  (plist-get more-spec     :sym))
-        (pal-mono (plist-get more-spec     :mono))
-        (pal-full (plist-get more-spec     :full))
-        (pal-g4   (plist-get more-spec     :g4))
-        (pal-gray (plist-get more-spec     :gray)))
+        (imgname     (or (plist-get more-spec :name) "untitled"))
+        (palette     (or (plist-get more-spec :palette) (simo-palette::new)))
+        (pal-sym     (plist-get more-spec     :sym))
+        (pal-mono    (plist-get more-spec     :mono))
+        (pal-full    (plist-get more-spec     :full))
+        (pal-g4      (plist-get more-spec     :g4))
+        (pal-gray    (plist-get more-spec     :gray))
+        (cpp4        (plist-get more-spec     :cpp4)))
 
     (when pal-full (simo-palette-set-full palette pal-full))
     (when pal-g4   (simo-palette-set-g4   palette pal-g4))
     (when pal-mono (simo-palette-set-mono palette pal-mono))
     (when pal-gray (simo-palette-set-gray palette pal-gray))
 
-    (while (< y height)
-      (let ((x   0)
-            (row nil))
-        (while (< x width)
-          (let* ((c   (simo-get-pixel self x y))
-                 (sym 32))
+    (macrolet
+        ((reading-loop (default-sym get-sym sym-sample cat-sym)
+          `(while (< y height)
+             (let ((x   0)
+                   (row nil))
+               (while (< x width)
+                 (let* ((c   (simo-get-pixel self x y))
+                        (sym ,default-sym))
+                                
+                   (when (> c -1)
+                     (setq sym ,get-sym)
+                     (puthash c ,sym-sample symbols)
+                     )
+                                
+                   (setq row (cons sym row)))
+                 (setq x (1+ x)))
 
-            (when (> c -1)
-              (setq sym (aref simo-xpm-symbol-table c))
-              (puthash c (string sym) symbols))
-
-            (setq row (cons sym row)))
-          (setq x (1+ x)))
-        (setq rows (cons (apply 'string (reverse row)) rows)))
-      (setq y (1+ y)))
+               (setq rows (cons ,cat-sym rows)))
+             (setq y (1+ y)))))
+      (if cpp4
+          (reading-loop "    "
+                        (simo::xpm-24bit-symbol c)
+                        sym
+                        (apply 'concat (reverse row)))
+        (reading-loop 32
+                      (aref simo-xpm-symbol-table c)
+                      (string sym)
+                      (apply 'string (reverse row)))))
     
     (setq pixels
           (mapconcat (lambda (row) (format "%S" row)) (reverse rows) ",\n"))
@@ -368,13 +406,14 @@ static char * %s[] = {
 /* Values */
 \"%d %d %d %d\",
 /* Colors */
-\" \t s None m None g None g4 None c None\"%s
+\"%s\t s None m None g None g4 None c None\"%s
 /* pixels */
 %s
 };
 "
             imgname
-            width height (1+ ncolors) simo-xpm-char-width
+            width height (1+ ncolors) (if cpp4 4 1)
+            (if cpp4 "    " " ")
             (if (> ncolors 0) (concat ",\n" colors) "")
             pixels)))
 
